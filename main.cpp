@@ -36,7 +36,6 @@ unsigned int VAO, VBO;
 
 unsigned int focus = 0;
 
-#define debug(log) std::cout << log <<std::endl
 
 void charCallback(GLFWwindow* window, unsigned int codepoint);
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
@@ -115,7 +114,7 @@ int main(int argc, char** argv)
 
 	if (FT_Init_FreeType(&ft))
 	{
-		debug("--Could not init FreeType Library");
+		std::cout << "--Could not init FreeType Library" << std::endl;
 		return EXIT_FAILURE;
 	}
 
