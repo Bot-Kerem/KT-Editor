@@ -3,7 +3,6 @@
 #include<glad/glad.h>
 #include<GLFW/glfw3.h>
 
-
 #include<string>
 #include<map>
 #include<vector>
@@ -36,20 +35,22 @@ unsigned int VAO, VBO;
 
 unsigned int focus = 0;
 
-
 void charCallback(GLFWwindow* window, unsigned int codepoint);
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
+void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
 
 void replaceAll(std::string& str, const std::string& from, const std::string& to);
 
 std::vector<std::string> lines;
 unsigned int currentLine = 0;
 float scale = 0.75;
-bool overwrite = true;
+bool overwrite = false;
 unsigned int program;
-
+int h = 0;
+glm::vec2 chSize;
+glm::vec2 chBearing;
 std::string fileName = "KT Editor.cpp";
 
 int main(int argc, char** argv) 
@@ -66,6 +67,7 @@ int main(int argc, char** argv)
 	glfwSetKeyCallback(window, keyCallback);
 	glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 	glfwSetScrollCallback(window, scrollCallback);
+	glfwSetMouseButtonCallback(window, mouseButtonCallback);
 
 	glfwMakeContextCurrent(window);
 	gladLoadGL();
@@ -197,8 +199,8 @@ int main(int argc, char** argv)
 	lines.push_back(std::string());
 
 
-	glm::vec2 chSize = Characters['a'].Size;
-	glm::vec2 chBearing = Characters['a'].Bearing;
+	chSize = Characters['a'].Size;
+	chBearing = Characters['a'].Bearing;
 
 	double cTime = 0;
 	double pTime = 0;
@@ -213,16 +215,18 @@ int main(int argc, char** argv)
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+
+		int last = (SCR_HEIGHT / (chSize.y * scale * 1.5f) + ((h) / (chSize.y * scale * 1.5f))) + 1;
 		glUseProgram(program);
-		for (int i = 0; i < lines.size(); i++)
+		for (int i = (int)((h) / (chSize.y * scale * 1.5f)); i < (lines.size()>last ? last : lines.size());i++)
 		{
-			RenderText(program, std::to_string(i + 1), 1, SCR_HEIGHT - ((i+1) * (chSize.y * scale * 1.5f)), scale, glm::vec3(0.2f, 0.3f, 0.8f));
-			RenderText(program, lines[i], (scale* (Characters['a'].Advance >> 6))*3.5, SCR_HEIGHT - ((i+1) * chSize.y * scale * 1.5f), scale, glm::vec3(sinf(cTime) * 0.5 + 0.5f, cosf(cTime) * 0.5 + 0.5f, 0.5f));
+			RenderText(program, std::to_string(i + 1), 1, SCR_HEIGHT - ((i+1) * (chSize.y * scale * 1.5f))+h, scale, glm::vec3(0.2f, 0.3f, 0.8f));
+			RenderText(program, lines[i], (scale* (Characters['a'].Advance >> 6))*3.5, SCR_HEIGHT - ((i+1) * chSize.y * scale * 1.5f)+h, scale, glm::vec3(sinf(cTime) * 0.5 + 0.5f, cosf(cTime) * 0.5 + 0.5f, 0.5f));
 		}
 		if (focus == lines[currentLine].size() or !overwrite)
-			RenderText(program, "|", (scale * (Characters['a'].Advance >> 6))*3 + (focus * (scale * (Characters['a'].Advance>>6))), SCR_HEIGHT - ((currentLine+1) * (chSize.y * scale * 1.5f)), scale, glm::vec3(sinf(cTime) * 0.5 + 0.5f, cosf(cTime) * 0.5 + 0.5f, 0.5f));
+			RenderText(program, "|", (scale * (Characters['a'].Advance >> 6))*3 + (focus * (scale * (Characters['a'].Advance>>6))), SCR_HEIGHT - ((currentLine+1) * (chSize.y * scale * 1.5f))+h, scale, glm::vec3(sinf(cTime) * 0.5 + 0.5f, cosf(cTime) * 0.5 + 0.5f, 0.5f));
 		else
-			RenderText(program, "[]", (scale* (Characters['a'].Advance >> 6))*3 + (focus * (scale * (Characters['a'].Advance >> 6))), SCR_HEIGHT - ((currentLine+1) * (chSize.y * scale * 1.5f)), scale, glm::vec3(sinf(cTime) * 0.5 + 0.5f, cosf(cTime) * 0.5 + 0.5f, 0.5f));
+			RenderText(program, "[]", (scale* (Characters['a'].Advance >> 6))*3 + (focus * (scale * (Characters['a'].Advance >> 6))), SCR_HEIGHT - ((currentLine+1) * (chSize.y * scale * 1.5f))+h, scale, glm::vec3(sinf(cTime) * 0.5 + 0.5f, cosf(cTime) * 0.5 + 0.5f, 0.5f));
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
@@ -378,6 +382,14 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 				file.close();
 			}
 			break;
+		case 78:
+			if (mods == 2 and action and scale <= 2)
+				scale += 0.02;
+			break;
+		case 74:
+			if (mods == 2 and action and scale >= 0.2f)
+				scale -= 0.02;
+			break;
 		case 82:
 			if (mods == 2 and action == 1)
 			{
@@ -385,7 +397,6 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 			}
 			break;
 	}
-
 }
 void framebufferSizeCallback(GLFWwindow* window, int width, int height)
 {
@@ -398,7 +409,9 @@ void framebufferSizeCallback(GLFWwindow* window, int width, int height)
 }
 void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 {
-	scale += yoffset*0.05;
+	if((h or yoffset==-1))
+		h += -yoffset*30;
+
 }
 void RenderText(unsigned int shader, std::string text, float x, float y, float scale, glm::vec3 color)
 {
@@ -447,5 +460,29 @@ void replaceAll(std::string& str, const std::string& from, const std::string& to
 	{
 		str.replace(start_pos, from.length(), to);
 		start_pos += to.length();
+	}
+}
+void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
+{
+	if (!button and action == 1 and !mods)
+	{
+		double xpos, ypos;
+		int xfocus;
+		glfwGetCursorPos(window, &xpos, &ypos);
+		if(overwrite)
+			xfocus = (xpos - (scale * (Characters['a'].Advance >> 6)) * 3.5f) / ((scale * (Characters['a'].Advance >> 6)));
+		else
+			xfocus = (xpos - (scale * (Characters['a'].Advance >> 6)) * 3) / ((scale * (Characters['a'].Advance >> 6)));
+		int yfocus = (int)((ypos + h) / (chSize.y * scale * 1.5f));
+		if (yfocus >= 0 and yfocus < lines.size())
+		{
+			if(xfocus >= 0 )
+			{
+				if (xfocus > lines[yfocus].size())
+					xfocus = lines[yfocus].size();
+				currentLine = yfocus;
+				focus = xfocus;
+			}
+		}
 	}
 }
